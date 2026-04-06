@@ -82,5 +82,5 @@ subsection Output
    set vtk_step =25
 
    # vtk and traces filename (do not write quotes)
-   set outputfile = WaveCGSEM_planeSperiodic2
+   set outputfile = WaveCGSEM_planeSperiodicTest
 end

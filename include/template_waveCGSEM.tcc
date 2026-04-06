@@ -447,12 +447,12 @@ template <int dim>
             if (cell->at_boundary(f))            
               {                 
                const unsigned int bid = cell->face(f)->boundary_id();
-               //bool is_periodic = (bid == boundary_id_left || bid == boundary_id_right);
-                bool is_top_boundary = (bid == 3 || bid == bid_max || bid == bid_min);
+               bool is_periodic = (bid == boundary_id_left || bid == boundary_id_right);
+              //bool is_top_boundary = (bid == 3 || bid == bid_max || bid == bid_min);
                //bool allow_boundary_source= (is_boundary_source && !is_top_boundary);
                 
                 //if (is_point_source || allow_boundary_source)
-               if (bid==2 || is_top_boundary)
+               if (!is_periodic)
                 {
                 cell_boundary_matrix = 0;
                 fe_facevalues.reinit(cell, f);
