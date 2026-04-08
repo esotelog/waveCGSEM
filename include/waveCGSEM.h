@@ -81,9 +81,6 @@ template <int dim>
     void assemble_boundary_matrix();
     void assemble_point_source();
     void Neumann_plane_wave();
-    void Dirichlet_plane_wave(dii::Vector<double> &solvec,
-                              const double &time,
-                              dii::Function<dim> &bfunction);
     void timestep_loop();
     void output_results() const;
     void check_conditioning(const dii::SparseMatrix<double> &A, 
@@ -129,8 +126,7 @@ template <int dim>
     const unsigned int boundary_id_right = 1;
 
     std::ofstream out;
-    std::unique_ptr<BoundaryValuesV<dim>> bvalues_vfunction;
-    std::unique_ptr<BoundaryValuesU<dim>> bvalues_ufunction;
+
   };
 
 

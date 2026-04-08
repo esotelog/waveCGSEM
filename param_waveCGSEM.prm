@@ -1,63 +1,47 @@
-# For assigning coordinates: Assume a reference mesh from 0.0 to 1.0 in all coordinates. 2D y =0.0 is at the top and y=1.0 at the bottom
 subsection Medium
-   set vp = 4242.6
-   set vs = 3000.0
+   set vp = 3000.0
+   set vs = 2121.3
    set rho = 2600.0
 end
 
 
 subsection Source
-   # source time function: 1 (Ricker), 2 (Brune)
-   set stf_type = 1
-
-   # fo = central frequency(Ricker), = 1/rise time (Brune)
+   # fo = central frequency(Ricker)
    set fo = 150.0
-
-   #source radius
-   set source_rad = 1.5
   
    #source 1. MT, 2. force vector 3.Antisymmetric MT 
    #4. Force vector at top boundary 5.displacement vector at top boundary
-   set source = 4
+   set source = 1
 
    #Moment tensor
    set M11 = 0.0
    set M12 = 1.0
    set M22 = 0.0
    
-   #force (or displacement) vector angle phi(deg), phi=0 along x
-   set phi = 0.0
-   
-   # taper for the force/displacement at the boundary 
-   set taper = 0.1
+   #force vector angle phi(deg), phi=0 along x
+   set phi = -90.0
 
    #source location. Valid only for source 1,2 or 3 (loc_z not used if the problem is 2d)
    #double coord from 0.0 to 1.0 
-   set loc_x = 50.0
-   set loc_y = -50.0
+   set loc_x = 40.0
+   set loc_y = -30.0
    set loc_z = 0.0 
 end
 
 subsection Discretization
    #total time (s)
-   set total_time = 0.06
+   set total_time = 0.05
 
    #dt_factor is the factor applied to the explicit time step
    set dt_factor = 0.2
-
-   #read mesh if true, subsequent parameters are ignored 
-   #mesh in the same directory of this file and named mesh_cg.vtk
-   set read_mesh = false
 
    #mesh: number of samples per min wavelength (int)
    set nsamples = 5
    
    #mesh: meshsize (side length)
-   set Lx = 100
-   set Ly = 50
+   set Lx = 80
+   set Ly = 80
 
-   #mesh: number of samples per source diameter (int)
-   set sourcesampling = 8
 end
 
 subsection FEM
@@ -73,14 +57,14 @@ subsection Output
    # receiver location in  x direction, separated by commas with no spaces
    # These are actual locations in the mesh
    set receivers_x = 50.0
-   set receivers_y = -20,-30,-40
+   set receivers_y = -50.0,-60.0,-70.0
 
    #vtk files
    set vtk = true
 
    #vtk step interval
-   set vtk_step =25
+   set vtk_step =20
 
    # vtk and traces filename (do not write quotes)
-   set outputfile = WaveCGSEM_planeSperiodicTest
+   set outputfile = WaveCGSEM_MTabc
 end

@@ -103,7 +103,7 @@ template<int dim>
 
    const unsigned int direction = 0; // 0 for x, 1 for y
    std::vector<dii::GridTools::PeriodicFacePair<
-    typename dii::DoFHandler<dim>::cell_iterator>> periodic_faces;
+   typename dii::DoFHandler<dim>::cell_iterator>> periodic_faces;
 
    dii:: GridTools::collect_periodic_faces(dof_handler,
                                           boundary_id_left,
@@ -113,8 +113,10 @@ template<int dim>
     
     //Apply periodic BC
     constraints.clear();
-    dii::DoFTools::make_periodicity_constraints<dim,dim>(periodic_faces,
-                                                         constraints);
+    //
+    if (param.source == 4 )
+      dii::DoFTools::make_periodicity_constraints<dim,dim>(periodic_faces,
+                                                           constraints);
     constraints.close();          
     
     //Sparsity pattern
@@ -193,18 +195,6 @@ template<int dim>
            cell->get_dof_indices(local_dof_indices);
            constraints.distribute_local_to_global(cell_stiffness_matrix, cell_mass_vector,
                                                 local_dof_indices, stiffness_matrix, mass_vector);
-            /*
-            for (const unsigned int i: fe_values.dof_indices())  
-              { 
-                mass_vector(local_dof_indices[i]) += cell_mass_vector(i);
-
-                for (const unsigned int j: fe_values.dof_indices())           
-                    stiffness_matrix.add(local_dof_indices[i],
-                                         local_dof_indices[j],
-                                         cell_stiffness_matrix(i,j));
-                   
-               }
-            */
           
           }//enf of loop by cell dof   
     // inverse mass vector
@@ -293,19 +283,7 @@ template<int dim>
         throw std::runtime_error("Invalid source type");
 
       source_term(local_dof_indices[i]) +=force_i;
-     /*
-      std::cout <<"phi: " << phi << std::endl;
-      std::cout <<"force_vector: " << force_vector[comp_i] << std::endl;
-      std::cout <<"source_value: " << source_value << std::endl;
-      std::cout <<"source_term: " << source_term(local_dof_indices[i]) << std::endl;
-      std::cout <<"--------------------------------" << std::endl;
 
-      out <<"phi: " << phi << std::endl;
-      out <<"force_vector: " << force_vector[comp_i] << std::endl;
-      out <<"source_value: " << source_value << std::endl;
-      out <<"source_term: " << source_term(local_dof_indices[i]) << std::endl;
-      out <<"--------------------------------" << std::endl;
-     */
     }
 
   }
@@ -326,22 +304,6 @@ template<int dim>
                                          boundary_id, bid_min, bid_max,
                                          axis, fraction_nf, Lmin, Lmax, boundary_cellsf);
 
-    //source taper function
-    /*
-    auto source_taper=[&](const double &x, const unsigned int &bid)
-      {
-        const double L=param.Lx;
-        double s = 0.0;
-       
-        if (bid == bid_min)  s = x/Lmin;
-        else if (bid == bid_max) s = (L-x)/Lmax;
-        else return 1.0;  
-        
-        s = std::min(1.0, std::max(0.0, s));   // clamp s
-        return 10*std::pow(s, 3) - 15*std::pow(s, 4) + 6*std::pow(s, 5);
-      
-     };
-     */
 
     dii::FEFaceValues<dim> fe_facevalues (cg_fe, qfaceformula,
                                            dii::update_values | 
@@ -352,23 +314,7 @@ template<int dim>
     dii::Vector<double> cell_source_vector(dofs_per_cell);
     std::vector<dii::types::global_dof_index> local_dof_indices(dofs_per_cell);
     const dii::Tensor<1,dim> force_vector = source_function.get_force_vector();
-        // impedence scaling for source at boundary
-      /* 
-    auto impedance =[&](const dii::Tensor<1,dim> & f)
-      {
-       const double rho=param.rho;
-       const double vp= param.vp;
-       const double vs= param.vs;
 
-       const double norm = std::sqrt(f[0]*f[0] + f[1]*f[1]);
-       if (norm < 1e-12) throw std::runtime_error("Zero force vector");
-   
-       return rho * std::sqrt( vp*vp*(f[0]*f[0])/ (norm*norm) + 
-                     vs*vs*(f[1]*f[1])/ (norm*norm) );
-      };
-
-      const dii::Tensor<1,dim> traction=impedance(force_vector)*force_vector;
-      */
     for (const auto &it : boundary_cellsf)
  
         {
@@ -396,29 +342,8 @@ template<int dim>
 
             constraints.distribute_local_to_global(cell_source_vector,
                                                   local_dof_indices, source_term);
-            /*
-            for (const unsigned int i: fe_facevalues.dof_indices())
-              source_term(local_dof_indices[i]) += cell_source_vector(i);
-            */
+
         }
-  }
-
-template<int dim>
-  void waveCGSEM<dim>::Dirichlet_plane_wave(dii::Vector<double> &solvec,
-                                            const double &time,
-                                            dii::Function<dim> &bfunction)
-  {
-    const unsigned int boundary_id = 3;
-    bfunction.set_time(time);
-    std::map<dii::types::global_dof_index, double> boundary_values;
-
-    dii::VectorTools::interpolate_boundary_values(dof_handler,
-                                                  boundary_id,
-                                                  bfunction,
-                                                  boundary_values);
-
-     for (const auto &it : boundary_values)
-          solvec[it.first] = it.second;
   }
  
 template <int dim>
@@ -428,8 +353,9 @@ template <int dim>
     const double vp= param.vp;
     const double vs= param.vs;
 
-    //const bool is_boundary_source =(param.source == 4 || param.source == 5);
-   //const bool is_point_source =(! is_boundary_source);
+    
+    const bool is_boundary_source = (param.source ==4);
+    const bool point_source_abc =(!is_boundary_source);
       
     dii::FEFaceValues<dim> fe_facevalues (cg_fe, qfaceformula,
                                           dii::update_values | 
@@ -448,11 +374,9 @@ template <int dim>
               {                 
                const unsigned int bid = cell->face(f)->boundary_id();
                bool is_periodic = (bid == boundary_id_left || bid == boundary_id_right);
-              //bool is_top_boundary = (bid == 3 || bid == bid_max || bid == bid_min);
-               //bool allow_boundary_source= (is_boundary_source && !is_top_boundary);
-                
-                //if (is_point_source || allow_boundary_source)
-               if (!is_periodic)
+               bool boundary_source_abc= (is_boundary_source && !is_periodic);
+
+               if (point_source_abc || boundary_source_abc)
                 {
                 cell_boundary_matrix = 0;
                 fe_facevalues.reinit(cell, f);
@@ -533,15 +457,13 @@ template <int dim>
    dii::Vector<double> forcing_terms (solution_u.size());
 
    source_term = 0.0;
-   if (param.source != 4 && param.source != 5)//point sourc
+   if (param.source < 4 )//point sourc
        assemble_point_source ();
    else if (param.source == 4)//Neumann boundary source
         Neumann_plane_wave ();
-   else if (param.source == 5)//Dirichlet boundary source
-      {
-        bvalues_vfunction = std::make_unique<BoundaryValuesV<dim>>(param);
-        bvalues_ufunction = std::make_unique<BoundaryValuesU<dim>>(param);
-      };
+   else
+      throw std::runtime_error("Invalid source type");
+
                      
     // Open output files for receivers' data (one per y-level)
    const std::string base = param.outputfile + "-";
@@ -604,19 +526,11 @@ template <int dim>
           solution_v += forcing_terms;
           constraints.distribute(solution_v);
 
-          
-         //**Adding Dirichlet boundary condition for v**
-         if (param.source ==5)
-            Dirichlet_plane_wave(solution_v, time, *bvalues_vfunction);
-
 
           //***Solving for u**
           solution_u = old_solution_u;
           solution_u.add(time_step, solution_v);
           constraints.distribute(solution_u);
-          //**Adding Dirichlet boundary condition for u**
-          if (param.source ==5)
-             Dirichlet_plane_wave(solution_u, time, *bvalues_ufunction);
 
          //calculating energ
          dealii::Vector<double> tmp(solution_v); 
