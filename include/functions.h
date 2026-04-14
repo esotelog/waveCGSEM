@@ -1,6 +1,7 @@
 #ifndef FUNCTIONS_H       
 #define FUNCTIONS_H
 
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <iomanip>

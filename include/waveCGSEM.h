@@ -19,6 +19,7 @@
 #define WAVE_CGSEM_H
 
 
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <iomanip>
@@ -85,13 +86,8 @@ template <int dim>
     void output_results() const;
     void check_conditioning(const dii::SparseMatrix<double> &A, 
                             const std::string &name);
-    void write_receiver_header(std::ofstream &out_yup,
-                               std::ofstream &out_ydg,
-                               std::ofstream &out_ydown);
-    void write_receiver_data(const double time,
-                             std::ofstream &out_yup,
-                             std::ofstream &out_ydg,
-                             std::ofstream &out_ydown);
+    void write_receiver_header(std::ofstream &receiver_out);
+    void write_receiver_data(const double time, std::ofstream &receiver_out);
 
     dii::Triangulation<dim> mesh;
     dii::FESystem<dim> cg_fe;

@@ -463,7 +463,9 @@ template <int dim>
 template <int dim>
 void Mesh_operations<dim>::print_mesh(dii::Triangulation<dim> &mesh) const
 {
-  const std::string filename = "./vtk/" + param.outputfile + "_mesh.vtk";
+  const std::string output_dir = "./vtk/";
+  std::filesystem::create_directories(output_dir);
+  const std::string filename = output_dir + param.outputfile + "_mesh.vtk";
   std::ofstream out(filename);
   dii::GridOut grid_out;
   grid_out.write_vtk(mesh, out);

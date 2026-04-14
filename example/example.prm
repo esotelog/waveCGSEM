@@ -4,11 +4,13 @@ subsection Medium
    set rho = 2600.0
 end
 
+
 subsection Source
 
-   # fo = central frequency(Ricker)
+   # fo = central frequency(Ricker), = 1/rise time (Brune)
    set fo = 150.0
 
+  
    #source 1. MT, 2. force vector 3.Antisymmetric MT 
    #4. Force vector at top boundary 
    set source = 4
@@ -21,6 +23,7 @@ subsection Source
    #force (or displacement) vector angle phi(deg), phi=0 along x
    set phi = 0.0
    
+
    #source location. Valid only for source 1,2 or 3 (loc_z not used if the problem is 2d)
    #double coord from 0.0 to 1.0 
    set loc_x = 50.0
@@ -29,7 +32,7 @@ subsection Source
 end
 
 subsection Discretization
-   #total simulation time (s)
+   #total time (s)
    set total_time = 0.06
 
    #dt_factor is the factor applied to the explicit time step
@@ -66,5 +69,5 @@ subsection Output
    set vtk_step =25
 
    # vtk and traces filename (do not write quotes)
-   set outputfile = WaveCGSEM_planeSperiodic
+   set outputfile = example
 end

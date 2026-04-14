@@ -465,12 +465,10 @@ template <int dim>
       throw std::runtime_error("Invalid source type");
 
                      
-    // Open output files for receivers' data (one per y-level)
-   const std::string base = param.outputfile + "-";
-   std::ofstream out_yup((base + "rcg_yup.dat").c_str());
-   std::ofstream out_ydg((base + "rcg_ydg.dat").c_str());
-   std::ofstream out_ydown((base + "rcg_ydown.dat").c_str());
-   write_receiver_header(out_yup, out_ydg, out_ydown);
+    // Open output file for receivers' data (all y-levels in one file)
+   const std::string base = param.outputfile;
+   std::ofstream receiver_out((base + ".dat").c_str());
+   write_receiver_header(receiver_out);
 
     // time calculations
     // const double min_cellsize= extreme_cellsize(mesh);
@@ -558,7 +556,7 @@ template <int dim>
       
           old_solution_u = solution_u;
           old_solution_v = solution_v;
-          write_receiver_data(time, out_yup, out_ydg, out_ydown);
+          write_receiver_data(time, receiver_out);
           //if (timestep_number >= 3)
            //  break;
           
@@ -615,6 +613,7 @@ template <int dim>
       data_out.build_patches (param.p_degree);
       
       const std::string output_dir = "./vtk/";
+      std::filesystem::create_directories(output_dir);
       const std::string filename = output_dir +
                                    param.outputfile + "-" +
                                    dii::Utilities::int_to_string (timestep_number, 3) +
@@ -625,81 +624,57 @@ template <int dim>
   
 
   template<int dim>
-  void waveCGSEM<dim>::write_receiver_header(std::ofstream &out_yup,
-                                            std::ofstream &out_ydg,
-                                            std::ofstream &out_ydown)
+  void waveCGSEM<dim>::write_receiver_header(std::ofstream &receiver_out)
   {
-    const unsigned int nr = param.receivers_x.size();
-    if (receivers_pos.empty() || nr == 0 || receivers_pos.size() != 3 * nr)
+    const unsigned int nx = param.receivers_x.size();
+    const unsigned int ny = param.receivers_y.size();
+    if (receivers_pos.empty() || nx == 0 || ny == 0 ||
+        receivers_pos.size() != nx * ny)
       return;
 
     const char *comp_name[] = {"ux", "uy", "uz"};
-    auto write_header = [&](std::ofstream &f, unsigned int offset, const char *label)
-    {
-      f << "# " << label << "  y = " << receivers_pos[offset][1] << std::endl;
-      f << "# x_coords:";
-      for (unsigned int i = 0; i < nr; ++i)
-        f << " " << receivers_pos[offset + i][0];
-      f << std::endl;
-      f << "# time";
-      for (unsigned int i = 0; i < nr; ++i)
-        for (unsigned int c = 0; c < dim; ++c)
-          f << "  " << comp_name[c] << "_r" << i;
-      f << std::endl;
-    };
+    const unsigned int nr = receivers_pos.size();
 
-    write_header(out_yup,      0,      "CG yup");
-    write_header(out_ydg, nr,     "DG ydg");
-    write_header(out_ydown,   2 * nr, "CG ydown");
+    receiver_out << "#";
+    for (unsigned int k = 0; k < nr; ++k)
+      {
+        const auto &p = receivers_pos[k];
+        receiver_out << " x" << k << "=" << p[0] << ", y" << k << "=" << p[1];
+        if (k + 1 < nr)
+          receiver_out << ",";
+      }
+    receiver_out << std::endl;
+
+    receiver_out << "# time";
+    for (unsigned int k = 0; k < nr; ++k)
+      for (unsigned int c = 0; c < dim; ++c)
+        receiver_out << "  " << comp_name[c] << "_r" << k;
+    receiver_out << std::endl;
   }
 
 template<int dim>
   void waveCGSEM<dim>::write_receiver_data(const double time,
-                                         std::ofstream &out_yup,
-                                         std::ofstream &out_ydg,
-                                         std::ofstream &out_ydown)
+                                         std::ofstream &receiver_out)
   {
-    const unsigned int nr = param.receivers_x.size();
-    if (receivers_pos.empty() || nr == 0)
+    const unsigned int nx = param.receivers_x.size();
+    const unsigned int ny = param.receivers_y.size();
+    if (receivers_pos.empty() || nx == 0 || ny == 0 ||
+        receivers_pos.size() != nx * ny)
       return;
 
-    // receivers_pos layout:
-    //   [0    .. nr-1]    : receivers at y-level 0
-    //   [nr   .. 2*nr-1]  : receivers at y-level 1
-    //   [2*nr .. 3*nr-1]  : receivers at y-level 2
-    // Vector has dim components (ux, uy for 2D; ux, uy, uz for 3D). Same for all receivers.
+    // Same point order as read_receiver_coordinates (y outer, x inner).
 
     dii::Vector<double> value(dim);
 
-    // y-level 0 (yup): time ux_r0 uy_r0 ux_r1 uy_r1 ...
-    out_yup << time;
-    for (unsigned int i = 0; i < nr; ++i)
-    {
-      dii::VectorTools::point_value(dof_handler, solution_u, receivers_pos[i], value);
-      for (unsigned int c = 0; c < dim; ++c)
-        out_yup << " " << value(c);
-    }
-    out_yup << std::endl;
-
-    // y-level 1 (ydg): time ux_r0 uy_r0 ux_r1 uy_r1 ...
-    out_ydg << time;
-    for (unsigned int i = nr; i < 2 * nr; ++i)
-    {
-      dii::VectorTools::point_value(dof_handler, solution_u, receivers_pos[i], value);
-      for (unsigned int c = 0; c < dim; ++c)
-        out_ydg << " " << value(c);
-    }
-    out_ydg << std::endl;
-
-    // y-level 2 (ydown): time ux_r0 uy_r0 ux_r1 uy_r1 ...
-    out_ydown << time;
-    for (unsigned int i = 2 * nr; i < 3 * nr; ++i)
-    {
-      dii::VectorTools::point_value(dof_handler, solution_u, receivers_pos[i], value);
-      for (unsigned int c = 0; c < dim; ++c)
-        out_ydown << " " << value(c);
-    }
-    out_ydown << std::endl;
+    receiver_out << time;
+    for (unsigned int k = 0; k < receivers_pos.size(); ++k)
+      {
+        dii::VectorTools::point_value(
+          dof_handler, solution_u, receivers_pos[k], value);
+        for (unsigned int c = 0; c < dim; ++c)
+          receiver_out << " " << value(c);
+      }
+    receiver_out << std::endl;
   }
 
   template<int dim>
