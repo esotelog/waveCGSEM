@@ -7,8 +7,9 @@
 - waveCGSEM_log.txt
 
 ## Example folder
-### Run the executable 
 Propagation of a shear plane wave originated at the top boundary in a homogeneous medium
+
+### Run the executable 
 ./waveCGSEM example.prm
 
 ## Developer corner
