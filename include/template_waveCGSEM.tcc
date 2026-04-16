@@ -484,32 +484,33 @@ template <int dim>
     out <<"time_step:  " <<time_step << std::endl;
     out << "   Total_time: " << total_time << std::endl<< std::endl;
     
-    for (double time=0.0;
-         time<=total_time;
-         time+=time_step, ++timestep_number)
-         {
-   
-            std::cout <<"timestep_number:  " <<timestep_number << std::endl;
-            std::cout <<"current time:  " <<time << std::endl;
+    while (true)
+      {
+        const double time = static_cast<double>(timestep_number - 1) * time_step;
+        if (time > total_time)
+           break;
+        
+        std::cout <<"timestep_number:  " <<timestep_number << std::endl;
+        std::cout <<"current time:  " <<time << std::endl;
 
-            out <<"timestep_number:  " <<timestep_number << std::endl;
-            out <<"current time:  " <<time << std::endl;
+        out <<"timestep_number:  " <<timestep_number << std::endl;
+        out <<"current time:  " <<time << std::endl;
 
-         solution_v = old_solution_v;
+        solution_v = old_solution_v;
 
-         stiffness_matrix.vmult (tmp, old_solution_u);
-         tmp *= -time_step/rho;
-         tmp.scale(inverse_mass_vector);
-         solution_v += tmp;
+        stiffness_matrix.vmult (tmp, old_solution_u);
+        tmp *= -time_step/rho;
+        tmp.scale(inverse_mass_vector);
+        solution_v += tmp;
 
          //Absorbing  Boundary condition for v
-         boundary_matrix.vmult (tmp, old_solution_v);
-         tmp *= -time_step/rho;
-         tmp.scale(inverse_mass_vector);
-         solution_v += tmp;
+        boundary_matrix.vmult (tmp, old_solution_v);
+        tmp *= -time_step/rho;
+        tmp.scale(inverse_mass_vector);
+        solution_v += tmp;
 
           //Include the source
-          if (time <= source_function.source_duration() && param.source != 5)
+        if (time <= source_function.source_duration() && param.source != 5)
           {
             source_function.set_time(time);
             double source_value= source_function.apply_source_time();
@@ -518,48 +519,47 @@ template <int dim>
             
             forcing_terms.scale(inverse_mass_vector);
           }
-          else
+        else
             forcing_terms =0.0;
 
-          solution_v += forcing_terms;
-          constraints.distribute(solution_v);
+        solution_v += forcing_terms;
+        constraints.distribute(solution_v);
 
 
           //***Solving for u**
-          solution_u = old_solution_u;
-          solution_u.add(time_step, solution_v);
-          constraints.distribute(solution_u);
+        solution_u = old_solution_u;
+        solution_u.add(time_step, solution_v);
+        constraints.distribute(solution_u);
 
          //calculating energ
-         dealii::Vector<double> tmp(solution_v); 
-         tmp.scale(mass_vector); 
-         double energy = 0.5*(solution_v * tmp) + 
+        dealii::Vector<double> tmp(solution_v); 
+        tmp.scale(mass_vector); 
+        double energy = 0.5*(solution_v * tmp) + 
                          0.5*stiffness_matrix.matrix_norm_square(solution_u);
 
-         std::cout << "Energy: " << energy 
+        std::cout << "Energy: " << energy 
                    <<std::endl<<std::endl;
-         out << "Energy: " << energy 
+        out << "Energy: " << energy 
               <<std::endl<<std::endl;
 
-         if (
-          energy>1e6) //stop the simulation if the total energy is too high (1e6 is a arbitrary value )
-              {
+        if (energy>1e6) //stop the simulation if the total energy is too high (1e6 is a arbitrary value )
+            {
                std::cout << "solution does not converge: stopping the simulation"
                << std::endl;
                out << "solution does not converge: stopping the simulation"
                << std::endl;
                break;
-              }
+            }
 
          if (timestep_number % param.vtk_step == 0 && param.vtk)
              output_results ();
       
-          old_solution_u = solution_u;
-          old_solution_v = solution_v;
-          write_receiver_data(time, receiver_out);
+        old_solution_u = solution_u;
+        old_solution_v = solution_v;
+        write_receiver_data(time, receiver_out);
           //if (timestep_number >= 3)
            //  break;
-          
+        ++timestep_number;
          }
   }
 
@@ -666,7 +666,9 @@ template<int dim>
 
     dii::Vector<double> value(dim);
 
+    receiver_out << std::scientific << std::setprecision(8);
     receiver_out << time;
+
     for (unsigned int k = 0; k < receivers_pos.size(); ++k)
       {
         dii::VectorTools::point_value(

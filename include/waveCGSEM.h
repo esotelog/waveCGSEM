@@ -18,7 +18,7 @@
 #ifndef WAVE_CGSEM_H       
 #define WAVE_CGSEM_H
 
-
+#include <iomanip>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
